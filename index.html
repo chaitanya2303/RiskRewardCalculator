@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Reward Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f4f8;
+  --card-bg:#ffffff;
+  --card-border:#e4e8ef;
+  --text-primary:#111111;
+  --text-secondary:#5a6275;
+  --text-muted:#9aa0ad;
+  --input-bg:#f8f9fc;
+  --input-border:#d8dce6;
+  --input-focus:#1a6ef8;
+  --tab-active-bg:#1a6ef8;
+  --tab-active-text:#ffffff;
+  --tab-text:#1a6ef8;
+  --tab-border:#c0d0f0;
+  --tab-bg:#eef3ff;
+  --result-bg:#f4f7ff;
+  --result-border:#dde4f8;
+  --profit-color:#16a34a;
+  --loss-color:#dc2626;
+  --clear-bg:#e8442a;
+  --clear-hover:#c93520;
+  --toggle-off:#ef4444;
+  --shadow:0 12px 40px rgba(0,0,0,0.12),0 2px 10px rgba(0,0,0,0.07);
+  --market-open:#22c55e;
+  --market-closed:#ef4444;
+}
+[data-theme="dark"]{
+  --bg:#111318;
+  --card-bg:#1c1f28;
+  --card-border:#262b38;
+  --text-primary:#f0f2f8;
+  --text-secondary:#8a90a0;
+  --text-muted:#555e70;
+  --input-bg:#242830;
+  --input-border:#333848;
+  --input-focus:#4a8eff;
+  --tab-active-bg:#1a6ef8;
+  --tab-active-text:#ffffff;
+  --tab-text:#6a9fff;
+  --tab-border:#253050;
+  --tab-bg:#1c2235;
+  --result-bg:#171c2a;
+  --result-border:#222b40;
+  --profit-color:#22c55e;
+  --loss-color:#f87171;
+  --shadow:0 12px 40px rgba(0,0,0,0.5),0 2px 10px rgba(0,0,0,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;transition:background 0.3s}
+
+/* ── Layout ── */
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px 12px 40px}
+.card{background:var(--card-bg);border-radius:20px;box-shadow:var(--shadow);width:100%;max-width:480px;padding:20px 20px 24px;border:1px solid var(--card-border);transition:background 0.3s,border-color 0.3s}
+
+/* ── Header ── */
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+.market-status{display:flex;align-items:center;gap:6px}
+.mkt-dot{width:9px;height:9px;border-radius:50%;background:var(--market-closed);flex-shrink:0;transition:background 0.4s}
+.mkt-dot.open{background:var(--market-open);animation:mktpulse 2s infinite}
+.mkt-dot.closed{background:var(--market-closed)}
+@keyframes mktpulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.5)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.mkt-label{font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;transition:color 0.4s;color:var(--market-closed)}
+.mkt-label.open{color:var(--market-open)}
+.datetime{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.hdr-mid{text-align:center;margin:8px 0 14px;position:relative}
+h1{font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em}
+.toggle-wrap{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.toggle{appearance:none;width:42px;height:23px;border-radius:12px;cursor:pointer;position:relative;transition:background 0.25s;background:#22c55e;border:none;outline:none}
+.toggle::before{content:'';position:absolute;width:17px;height:17px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.25)}
+[data-theme="dark"] .toggle{background:#4a8eff}
+[data-theme="dark"] .toggle::before{transform:translateX(19px)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:nowrap}
+.tab{flex:1;min-width:0;padding:8px 4px;border-radius:10px;border:1.5px solid var(--tab-border);background:var(--tab-bg);color:var(--tab-text);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab:hover{border-color:var(--input-focus)}
+.tab.active{background:var(--tab-active-bg);color:var(--tab-active-text);border-color:var(--tab-active-bg)}
+
+/* ── Fields ── */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;letter-spacing:0.01em}
+.field label .sub{font-weight:400;color:var(--text-muted);font-size:11px;margin-left:3px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+input[type="number"],select{
+  width:100%;height:44px;padding:0 13px;
+  border-radius:9px;border:1.5px solid var(--input-border);
+  background:var(--input-bg);color:var(--text-primary);
+  font-size:14px;font-family:'DM Sans',sans-serif;
+  transition:border-color 0.15s,box-shadow 0.15s;outline:none;
+  appearance:textfield
+}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--input-focus);box-shadow:0 0 0 3px rgba(26,110,248,0.12)}
+input::placeholder{color:var(--text-muted);font-size:13px}
+
+.sfx{position:relative}
+.sfx input{padding-right:36px}
+.sfx span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;font-weight:500;pointer-events:none}
+
+/* Trade counter */
+.ctr{display:flex;align-items:center;border:1.5px solid var(--input-border);border-radius:9px;overflow:hidden;height:44px;background:var(--input-bg)}
+.ctr button{width:38px;height:100%;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-secondary);transition:background 0.15s,color 0.15s;font-family:'DM Sans',sans-serif;flex-shrink:0}
+.ctr button:hover{background:var(--result-bg);color:var(--input-focus)}
+.ctr .num{flex:1;text-align:center;font-size:15px;font-weight:600;color:var(--text-primary);font-family:'JetBrains Mono',monospace}
+
+.qty-wrap{display:flex;gap:7px}
+.qty-wrap input{flex:1;min-width:0}
+.qty-wrap select{width:110px;padding:0 8px;font-size:12px;flex-shrink:0}
+
+/* Max risk pill */
+.risk-pill{display:none;align-items:center;justify-content:space-between;background:var(--result-bg);border:1.5px solid var(--result-border);border-radius:9px;padding:9px 13px;margin-bottom:13px}
+.risk-pill .lbl{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.risk-pill .val{font-size:14px;font-weight:700;color:var(--loss-color);font-family:'JetBrains Mono',monospace}
+
+/* Results */
+.results{background:var(--result-bg);border:1.5px solid var(--result-border);border-radius:12px;padding:14px;margin-bottom:14px;display:none}
+.res-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
+.res-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ri{text-align:center}
+.ri .rl{font-size:10px;color:var(--text-muted);margin-bottom:2px;font-weight:500}
+.ri .rv{font-size:15px;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.2}
+.rv.pos{color:var(--profit-color)}
+.rv.neg{color:var(--loss-color)}
+.rv.inf{color:var(--input-focus)}
+.res-div{height:1px;background:var(--result-border);margin:10px 0}
+
+/* Buttons */
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-clear,.btn-calc{height:48px;border-radius:11px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.15s,transform 0.1s;font-family:'DM Sans',sans-serif;letter-spacing:-0.01em}
+.btn-clear{background:var(--clear-bg);color:#fff}
+.btn-clear:hover{background:var(--clear-hover)}
+.btn-calc{background:var(--input-focus);color:#fff}
+.btn-calc:hover{background:#1558cc}
+.btn-clear:active,.btn-calc:active{transform:scale(0.97)}
+
+/* ── Mobile overrides ── */
+@media(max-width:400px){
+  body{padding:10px 8px 40px}
+  .card{padding:16px 14px 20px;border-radius:16px}
+  h1{font-size:17px}
+  .tab{font-size:11px;padding:7px 2px}
+  .row2{grid-template-columns:1fr}
+  .qty-wrap{flex-direction:column}
+  .qty-wrap select{width:100%}
+  .res-grid{grid-template-columns:1fr 1fr 1fr}
+  .ri .rv{font-size:13px}
+  .datetime{display:none}
+  .btn-clear,.btn-calc{font-size:14px;height:44px}
+}
+@media(max-width:360px){
+  .tab{font-size:10px}
+  .tabs{gap:4px}
+  .res-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Header -->
+  <div class="hdr-top">
+    <div class="market-status">
+      <div class="mkt-dot" id="mktDot"></div>
+      <span class="mkt-label" id="mktLabel">Checking...</span>
+    </div>
+    <div class="datetime" id="clock"></div>
+  </div>
+  <div class="hdr-mid">
+    <h1>Risk Reward Calculator</h1>
+    <div class="toggle-wrap">
+      <input type="checkbox" class="toggle" id="themeToggle" title="Dark mode">
+    </div>
+  </div>
+
+  <!-- Market tabs -->
+  <div class="tabs">
+    <button class="tab active" data-market="nifty50"    onclick="setMarket(this)">Nifty 50</button>
+    <button class="tab"        data-market="banknifty"  onclick="setMarket(this)">Bank Nifty</button>
+    <button class="tab"        data-market="sensex"     onclick="setMarket(this)">Sensex</button>
+    <button class="tab"        data-market="stock"      onclick="setMarket(this)">Stock</button>
+  </div>
+
+  <!-- Capital -->
+  <div class="field">
+    <label>Trading Capital</label>
+    <input type="number" id="capital" placeholder="Enter Your Capital (₹)" oninput="calc()">
+  </div>
+
+  <!-- Trades + Risk -->
+  <div class="row2">
+    <div class="field">
+      <label>Daily Trades <span class="sub" id="frac">3/3</span></label>
+      <div class="ctr">
+        <button onclick="chgTrade(-1)">−</button>
+        <span class="num" id="tcount">3</span>
+        <button onclick="chgTrade(1)">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Daily Risk %</label>
+      <div class="sfx">
+        <input type="number" id="riskPct" placeholder="e.g. 2" step="0.1" oninput="calc()">
+        <span>%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Max risk pill -->
+  <div class="risk-pill" id="riskPill">
+    <span class="lbl">Max Risk / Trade</span>
+    <span class="val" id="riskVal">₹0</span>
+  </div>
+
+  <!-- Entry + Quantity -->
+  <div class="row2">
+    <div class="field">
+      <label>Entry Price</label>
+      <input type="number" id="entry" placeholder="Enter Entry" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Quantity / Lots</label>
+      <div class="qty-wrap">
+        <input type="number" id="qty" placeholder="Qty" oninput="calc()">
+        <select id="lotSel" onchange="onLot()" title="Lot size selection"></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SL + Target -->
+  <div class="row2">
+    <div class="field">
+      <label>Stop Loss</label>
+      <input type="number" id="sl" placeholder="Stop Loss Price" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Target Price</label>
+      <input type="number" id="tp" placeholder="Target Price" oninput="calc()">
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="res-title">Results</div>
+    <div class="res-grid">
+      <div class="ri"><div class="rl">Risk (₹)</div><div class="rv neg" id="rRisk">—</div></div>
+      <div class="ri"><div class="rl">Reward (₹)</div><div class="rv pos" id="rRew">—</div></div>
+      <div class="ri"><div class="rl">R:R Ratio</div><div class="rv inf" id="rRR">—</div></div>
+    </div>
+    <div class="res-div"></div>
+    <div class="res-grid">
+      <div class="ri"><div class="rl">Risk %</div><div class="rv neg" id="rRP">—</div></div>
+      <div class="ri"><div class="rl">Reward %</div><div class="rv pos" id="rRewP">—</div></div>
+      <div class="ri"><div class="rl">Min Win%</div><div class="rv" id="rWin">—</div></div>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <button class="btn-calc"  onclick="calc()">Calculate</button>
+  </div>
+</div>
+
+<script>
+// ── Lot sizes per market ──
+const LOTS = {
+  nifty50:   [{l:'75 (1 lot)',v:75},{l:'150 (2 lots)',v:150},{l:'225 (3)',v:225},{l:'300 (4)',v:300},{l:'375 (5)',v:375}],
+  banknifty: [{l:'30 (1 lot)',v:30},{l:'60 (2 lots)',v:60},{l:'90 (3)',v:90},{l:'120 (4)',v:120},{l:'150 (5)',v:150}],
+  sensex:    [{l:'20 (1 lot)',v:20},{l:'40 (2 lots)',v:40},{l:'60 (3)',v:60},{l:'80 (4)',v:80},{l:'100 (5)',v:100}],
+  stock:     [{l:'Custom',v:1}]
+};
+
+let market='nifty50', maxT=3, curT=3;
+
+function setMarket(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  market=btn.dataset.market;
+  buildLots();calc();
+}
+
+function buildLots(){
+  const sel=document.getElementById('lotSel');
+  sel.innerHTML='<option value="1">Custom</option>'+LOTS[market].map(l=>`<option value="${l.v}">${l.l}</option>`).join('');
+  if(LOTS[market].length>1) sel.selectedIndex=1;
+  onLot();
+}
+
+function onLot(){
+  const v=+document.getElementById('lotSel').value;
+  if(v>1) document.getElementById('qty').value=v;
+  calc();
+}
+
+function chgTrade(d){
+  curT=Math.max(1,Math.min(maxT,curT+d));
+  document.getElementById('tcount').textContent=curT;
+  document.getElementById('frac').textContent=curT+'/'+maxT;
+  calc();
+}
+
+const fmt=n=>isNaN(n)||!isFinite(n)?'—':n.toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2});
+
+function calc(){
+  const cap=+document.getElementById('capital').value||0;
+  const rp=+document.getElementById('riskPct').value||0;
+  const en=+document.getElementById('entry').value||0;
+  const q=+document.getElementById('qty').value||0;
+  const s=+document.getElementById('sl').value||0;
+  const t=+document.getElementById('tp').value||0;
+
+  const dayRisk=cap*(rp/100);
+  const perTrade=curT>0?dayRisk/curT:0;
+  const pill=document.getElementById('riskPill');
+  if(cap>0&&rp>0){pill.style.display='flex';document.getElementById('riskVal').textContent='₹'+fmt(perTrade);}
+  else pill.style.display='none';
+
+  if(!en||!q||!s){document.getElementById('results').style.display='none';return;}
+
+  const rPts=entry-s, rAmt=Math.abs(rPts)*q;
+  const wPts=t?t-en:0, wAmt=Math.abs(wPts)*q;
+  const rr=rPts!==0?Math.abs(wPts/rPts):0;
+  const rPct=en>0?(Math.abs(rPts)/en)*100:0;
+  const wPct=en>0?(Math.abs(wPts)/en)*100:0;
+  const minWin=rr>0?(1/(1+rr))*100:0;
+
+  document.getElementById('rRisk').textContent='₹'+fmt(rAmt);
+  document.getElementById('rRew').textContent=t?'₹'+fmt(wAmt):'—';
+  document.getElementById('rRR').textContent=t?'1:'+fmt(rr):'—';
+  document.getElementById('rRP').textContent=fmt(rPct)+'%';
+  document.getElementById('rRewP').textContent=t?fmt(wPct)+'%':'—';
+  document.getElementById('rWin').textContent=t?fmt(minWin)+'%':'—';
+  document.getElementById('results').style.display='block';
+}
+
+function clearAll(){
+  ['capital','riskPct','entry','qty','sl','tp'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('results').style.display='none';
+  document.getElementById('riskPill').style.display='none';
+  curT=3;document.getElementById('tcount').textContent=3;document.getElementById('frac').textContent='3/3';
+  buildLots();
+}
+
+// ── Clock ──
+function updateClock(){
+  const now=new Date();
+  const d=now.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const time=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).toUpperCase();
+  document.getElementById('clock').textContent=d+' '+time;
+}
+setInterval(updateClock,1000);updateClock();
+
+// ── Market Status (IST) ──
+// NSE hours: 9:15 AM – 3:30 PM IST, Monday–Friday
+function isMarketOpen(){
+  const now=new Date();
+  // Get IST time
+  const utc=now.getTime()+(now.getTimezoneOffset()*60000);
+  const ist=new Date(utc+(5.5*60*60*1000));
+  const day=ist.getDay(); // 0=Sun,6=Sat
+  const mins=ist.getHours()*60+ist.getMinutes();
+  return day>=1&&day<=5&&mins>=(9*60+15)&&mins<(15*60+30);
+}
+
+function updateMarket(){
+  const open=isMarketOpen();
+  const dot=document.getElementById('mktDot');
+  const lbl=document.getElementById('mktLabel');
+  dot.className='mkt-dot '+(open?'open':'closed');
+  lbl.className='mkt-label '+(open?'open':'');
+  lbl.textContent=open?'Market Open':'Market Closed';
+}
+setInterval(updateMarket,30000);updateMarket();
+
+// ── Theme toggle ──
+document.getElementById('themeToggle').addEventListener('change',function(){
+  document.documentElement.setAttribute('data-theme',this.checked?'dark':'light');
+});
+
+// Fix variable typo in calc
+const calc2=calc;
+function calc(){
+  const cap=+document.getElementById('capital').value||0;
+  const rp=+document.getElementById('riskPct').value||0;
+  const en=+document.getElementById('entry').value||0;
+  const q=+document.getElementById('qty').value||0;
+  const s=+document.getElementById('sl').value||0;
+  const t=+document.getElementById('tp').value||0;
+  const dayRisk=cap*(rp/100);
+  const perTrade=curT>0?dayRisk/curT:0;
+  const pill=document.getElementById('riskPill');
+  if(cap>0&&rp>0){pill.style.display='flex';document.getElementById('riskVal').textContent='₹'+fmt(perTrade);}
+  else pill.style.display='none';
+  if(!en||!q||!s){document.getElementById('results').style.display='none';return;}
+  const rPts=en-s,rAmt=Math.abs(rPts)*q;
+  const wPts=t?t-en:0,wAmt=Math.abs(wPts)*q;
+  const rr=rPts!==0?Math.abs(wPts/rPts):0;
+  const rPct=en>0?(Math.abs(rPts)/en)*100:0;
+  const wPct=en>0?(Math.abs(wPts)/en)*100:0;
+  const minWin=rr>0?(1/(1+rr))*100:0;
+  document.getElementById('rRisk').textContent='₹'+fmt(rAmt);
+  document.getElementById('rRew').textContent=t?'₹'+fmt(wAmt):'—';
+  document.getElementById('rRR').textContent=t?'1:'+fmt(rr):'—';
+  document.getElementById('rRP').textContent=fmt(rPct)+'%';
+  document.getElementById('rRewP').textContent=t?fmt(wPct)+'%':'—';
+  document.getElementById('rWin').textContent=t?fmt(minWin)+'%':'—';
+  document.getElementById('results').style.display='block';
+}
+
+buildLots();
+</script>
+</body>
+</html>
